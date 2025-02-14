@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RapidMed - Medicine Delivery</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Base Styles */
+        :root {
+            --primary: #2563eb;
+            --secondary: #1e40af;
+            --text: #1f2937;
+            --light-bg: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--light-bg);
+        }
+
+        /* Header Styles */
+        header {
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 100;
+        }
+
+        .top-bar {
+            background: var(--secondary);
+            color: white;
+            text-align: center;
+            padding: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 5%;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            color: var(--primary);
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text);
+            text-decoration: none;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.3s;
+        }
+
+        .nav-links a:hover {
+            background-color: var(--light-bg);
+        }
+
+        /* Main Content */
+        main {
+            margin-top: 4rem;
+            min-height: calc(100vh - 4rem - 300px); /* Account for header and footer */
+        }
+
+        /* Medicine Categories */
+        .medicine-categories {
+            padding: 4rem 5%;
+            background: white;
+        }
+
+        .category-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .category-title {
+            font-size: 1.8rem;
+            color: var(--text);
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--gray-200);
+        }
+
+        .medicine-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+
+        .medicine-card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: transform 0.3s;
+        }
+
+        .medicine-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .medicine-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .medicine-info {
+            padding: 1.5rem;
+        }
+
+        .medicine-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .medicine-description {
+            color: var(--gray-400);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .medicine-price {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .add-to-cart {
+            width: 100%;
+            padding: 0.8rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .add-to-cart:hover {
+            background: var(--secondary);
+        }
+
+        /* Footer */
+        footer {
+            background: white;
+            padding: 4rem 5%;
+            margin-top: 4rem;
+        }
+
+        .footer-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 4rem;
+        }
+
+        .footer-section h3 {
+            color: var(--text);
+            margin-bottom: 1.5rem;
+        }
+
+        .footer-links {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 0.8rem;
+        }
+
+        .footer-links a {
+            color: var(--gray-400);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .footer-links a:hover {
+            color: var(--primary);
+        }
+
+        .social-links {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .social-links a {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--light-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text);
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+
+        .social-links a:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 2rem;
+            margin-top: 2rem;
+            border-top: 1px solid var(--gray-200);
+            color: var(--gray-400);
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            min-height: 60vh;
+            padding: 8rem 5% 4rem;
+            color: white;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        .search-section {
+            padding: 2.5rem;
+            max-width: 1000px;
+        }
+
+        .search-title {
+            color: var(--text);
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+        }
+
+        .search-box-wrapper {
+            display: flex;
+            align-items: center;
+            background: white;
+            border: 2px solid var(--primary);
+            border-radius: 1rem;
+            padding: 0.5rem 1rem;
+        }
+
+        .search-icon {
+            font-size: 1.5rem;
+            margin-right: 1rem;
+            color: var(--gray-400);
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1.2rem;
+            border: none;
+            outline: none;
+        }
+
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: none;
+            z-index: 10;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .search-result-item {
+            padding: 1rem;
+            border-bottom: 1px solid var(--gray-200);
+            cursor: pointer;
+        }
+
+        .search-result-item:hover {
+            background: var(--light-bg);
+        }
+
+        /* Quick Categories */
+        .quick-categories {
+            padding: 2rem 5%;
+            background: white;
+        }
+
+        .category-scroll {
+            display: flex;
+            gap: 2rem;
+            overflow-x: auto;
+            padding: 2rem;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .category-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        .category-item {
+            flex: 0 0 auto;
+            text-align: center;
+            padding: 1.5rem;
+            background: var(--light-bg);
+            border-radius: 1rem;
+            cursor: pointer;
+            transition: transform 0.3s;
+            min-width: 150px;
+        }
+
+        .category-item:hover {
+            transform: translateY(-5px);
+        }
+
+        .category-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Cart Modal */
+        .cart-modal {
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 400px;
+            background: white;
+            box-shadow: -2px 0 4px rgba(0,0,0,0.1);
+            transform: translateX(100%);
+            transition: transform 0.3s;
+            z-index: 1000;
+        }
+
+        .cart-modal.active {
+            transform: translateX(0);
+        }
+
+        .cart-header {
+            padding: 1rem;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .cart-items {
+            padding: 1rem;
+            overflow-y: auto;
+            max-height: calc(100vh - 200px);
+        }
+
+        .cart-item {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .cart-total {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem;
+            background: white;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .cart-modal {
+                width: 100%;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .mobile-menu {
+                display: block;
+            }
+        }
+
+        /* Healthcare Section Styles */
+        .healthcare-section {
+            padding: 4rem 5%;
+            background: white;
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+
+        /* Lab Tests Section Styles */
+        .lab-tests-section {
+            padding: 4rem 5%;
+            background: var(--light-bg);
+        }
+
+        .test-packages {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+
+        .test-card {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Doctor Section Styles */
+        .doctor-section {
+            padding: 4rem 5%;
+            background: white;
+        }
+
+        .specialties-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+
+        .specialty-card {
+            text-align: center;
+            padding: 2rem;
+            border-radius: 1rem;
+            background: var(--light-bg);
+            transition: transform 0.3s;
+        }
+
+        .specialty-card:hover {
+            transform: translateY(-5px);
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Bar -->
+    <div class="top-bar">
+        Free delivery on orders above ₹500 | Same day delivery in selected cities
+    </div>
+
+    <!-- Header -->
+    <header>
+        <nav>
+            <div class="logo">RapidMed</div>
+            <ul class="nav-links">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#medicines">Medicines</a></li>
+                <li><a href="#healthcare">Healthcare</a></li>
+                <li><a href="#lab-tests">Lab Tests</a></li>
+                <li><a href="#doctor">Doctor</a></li>
+                <li><a href="#cart">Cart</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <div class="hero-content">
+            <h1>Your Health, Delivered</h1>
+            <p>Get medicines delivered to your doorstep in 10 minutes</p>
+            
+            <div class="search-section">
+                <h2 class="search-title">Find Medicines & Healthcare Products</h2>
+                <div class="search-container">
+                    <div class="search-box-wrapper">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" class="search-box" placeholder="Search medicines, healthcare products, tests...">
+                    </div>
+                    <div class="search-results" id="searchResults"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Categories -->
+    <section class="quick-categories">
+        <div class="category-container">
+            <div class="category-scroll">
+                <div class="category-item" data-category="fever">
+                    <div class="category-icon">🌡️</div>
+                    <span>Fever & Pain</span>
+                </div>
+                <div class="category-item" data-category="cold">
+                    <div class="category-icon">🤧</div>
+                    <span>Cold & Cough</span>
+                </div>
+                <div class="category-item" data-category="diabetes">
+                    <div class="category-icon">💉</div>
+                    <span>Diabetes</span>
+                </div>
+                <div class="category-item" data-category="heart">
+                    <div class="category-icon">❤️</div>
+                    <span>Heart Care</span>
+                </div>
+                <!-- Add more categories -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Medicine Categories -->
+        <section class="medicine-categories" id="medicines">
+            <div class="category-container">
+                <h2 class="category-title">Common Medicines</h2>
+                <div class="medicine-grid">
+                    <!-- Medicine Cards -->
+                    <div class="medicine-card">
+                        <img src="images/paracetamol.jpg" alt="Paracetamol" class="medicine-image">
+                        <div class="medicine-info">
+                            <h3 class="medicine-name">Paracetamol (Crocin)</h3>
+                            <p class="medicine-description">Pain relief & fever reduction</p>
+                            <p class="medicine-price">₹30</p>
+                            <button class="add-to-cart">Add to Cart</button>
+                        </div>
+                    </div>
+                    <!-- Add more medicine cards -->
+                </div>
+
+                <h2 class="category-title">Chronic Conditions</h2>
+                <div class="medicine-grid">
+                    <!-- Chronic Medicine Cards -->
+                    <div class="medicine-card">
+                        <img src="images/metformin.jpg" alt="Metformin" class="medicine-image">
+                        <div class="medicine-info">
+                            <h3 class="medicine-name">Metformin (Glucophage)</h3>
+                            <p class="medicine-description">Type 2 Diabetes Management</p>
+                            <p class="medicine-price">₹120</p>
+                            <button class="add-to-cart">Add to Cart</button>
+                        </div>
+                    </div>
+                    <!-- Add more medicine cards -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Healthcare Section -->
+        <section class="healthcare-section" id="healthcare">
+            <div class="section-container">
+                <h2 class="section-title">Healthcare Products</h2>
+                
+                <div class="healthcare-categories">
+                    <div class="healthcare-category">
+                        <h3>Personal Care</h3>
+                        <div class="product-grid">
+                            <div class="product-card">
+                                <img src="images/healthcare/sanitizer.jpg" alt="Hand Sanitizer">
+                                <div class="product-info">
+                                    <h4>Hand Sanitizer</h4>
+                                    <p>500ml with Aloe Vera</p>
+                                    <span class="price">₹199</span>
+                                    <button class="add-to-cart">Add to Cart</button>
+                                </div>
+                            </div>
+                            <!-- Add more products -->
+                        </div>
+                    </div>
+
+                    <div class="healthcare-category">
+                        <h3>Wellness</h3>
+                        <div class="product-grid">
+                            <!-- Add wellness products -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Lab Tests Section -->
+        <section class="lab-tests-section" id="lab-tests">
+            <div class="section-container">
+                <h2 class="section-title">Lab Tests & Health Checkups</h2>
+                
+                <div class="test-packages">
+                    <div class="test-card">
+                        <div class="test-header">
+                            <h3>Complete Health Checkup</h3>
+                            <span class="test-price">₹1999</span>
+                        </div>
+                        <ul class="test-details">
+                            <li>Complete Blood Count</li>
+                            <li>Diabetes Screening</li>
+                            <li>Liver Function Test</li>
+                            <li>Kidney Function Test</li>
+                            <li>Lipid Profile</li>
+                        </ul>
+                        <button class="book-test">Book Now</button>
+                    </div>
+                    <!-- Add more test packages -->
+                </div>
+
+                <div class="home-collection">
+                    <img src="images/home-collection.png" alt="Home Collection">
+                    <div class="collection-info">
+                        <h3>Free Home Sample Collection</h3>
+                        <p>Our trained phlebotomist will collect your sample from home</p>
+                        <button class="book-collection">Schedule Collection</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Doctor Section -->
+        <section class="doctor-section" id="doctor">
+            <div class="section-container">
+                <h2 class="section-title">Online Doctor Consultation</h2>
+                
+                <div class="specialties-grid">
+                    <div class="specialty-card">
+                        <div class="specialty-icon">👨‍⚕️</div>
+                        <h3>General Physician</h3>
+                        <p>Fever, Cough, Cold, etc.</p>
+                        <span class="consultation-fee">₹299</span>
+                        <button class="consult-now">Consult Now</button>
+                    </div>
+                    <!-- Add more specialties -->
+                </div>
+
+                <div class="consultation-steps">
+                    <h3>How it works</h3>
+                    <div class="steps-grid">
+                        <div class="step">
+                            <div class="step-number">1</div>
+                            <h4>Select Specialty</h4>
+                            <p>Choose from our expert doctors</p>
+                        </div>
+                        <!-- Add more steps -->
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <ul class="footer-links">
+                    <li><a href="#about">About Us</a></li>
+                    <li><a href="#contact">Contact Us</a></li>
+                    <li><a href="#faq">FAQs</a></li>
+                    <li><a href="#terms">Terms & Conditions</a></li>
+                    <li><a href="#privacy">Privacy Policy</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-section">
+                <h3>Categories</h3>
+                <ul class="footer-links">
+                    <li><a href="#medicines">Medicines</a></li>
+                    <li><a href="#healthcare">Healthcare Products</a></li>
+                    <li><a href="#lab-tests">Lab Tests</a></li>
+                    <li><a href="#doctor">Doctor Consultation</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-section">
+                <h3>Contact Us</h3>
+                <ul class="footer-links">
+                    <li>Email: support@rapidmed.com</li>
+                    <li>Phone: 1800-123-4567</li>
+                    <li>Address: 123 Healthcare Street,<br>Medical City, MC 12345</li>
+                </ul>
+                <div class="social-links">
+                    <a href="#" title="Facebook">f</a>
+                    <a href="#" title="Twitter">t</a>
+                    <a href="#" title="Instagram">i</a>
+                    <a href="#" title="LinkedIn">in</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>&copy; 2024 RapidMed. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Add to cart functionality
+        document.querySelectorAll('.add-to-cart').forEach(button => {
+            button.addEventListener('click', function() {
+                const card = this.closest('.medicine-card');
+                const medicineName = card.querySelector('.medicine-name').textContent;
+                alert(`Added ${medicineName} to cart`);
+                // Implement actual cart functionality
+            });
+        });
+    </script>
+</body>
+</html>
