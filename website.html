@@ -479,6 +479,60 @@
         .specialty-card:hover {
             transform: translateY(-5px);
         }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--primary);
+            color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        .loading-spinner {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;
+            border: 5px solid var(--light-bg);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -497,7 +551,11 @@
                 <li><a href="#healthcare">Healthcare</a></li>
                 <li><a href="#lab-tests">Lab Tests</a></li>
                 <li><a href="#doctor">Doctor</a></li>
-                <li><a href="#cart">Cart</a></li>
+                <li>
+                    <a href="#cart" class="cart-link">
+                        Cart <span class="cart-count" id="cartCount">0</span>
+                    </a>
+                </li>
             </ul>
         </nav>
     </header>
@@ -725,16 +783,237 @@
         </div>
     </footer>
 
+    <!-- Add Cart Modal -->
+    <div class="cart-modal" id="cartModal">
+        <div class="cart-header">
+            <h3>Your Cart</h3>
+            <button class="close-cart">×</button>
+        </div>
+        <div class="cart-items"></div>
+        <div class="cart-total">
+            <div class="total">Total: ₹0</div>
+            <button class="checkout-btn">Proceed to Checkout</button>
+        </div>
+    </div>
+
     <script>
-        // Add to cart functionality
-        document.querySelectorAll('.add-to-cart').forEach(button => {
-            button.addEventListener('click', function() {
-                const card = this.closest('.medicine-card');
-                const medicineName = card.querySelector('.medicine-name').textContent;
-                alert(`Added ${medicineName} to cart`);
-                // Implement actual cart functionality
-            });
-        });
+        // Replace the existing CartManager class with this enhanced version
+        class CartManager {
+            constructor() {
+                this.cart = new Map();
+                this.cartModal = document.getElementById('cartModal');
+                this.cartCount = document.getElementById('cartCount');
+                this.initializeCart();
+            }
+
+            initializeCart() {
+                // Cart toggle
+                document.querySelector('.cart-link').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.toggleCart();
+                });
+
+                document.querySelector('.close-cart').addEventListener('click', () => {
+                    this.toggleCart();
+                });
+
+                // Add to cart buttons
+                document.querySelectorAll('.add-to-cart').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const card = e.target.closest('.medicine-card, .product-card');
+                        const item = {
+                            id: card.dataset.id || Date.now(),
+                            name: card.querySelector('.medicine-name, h4').textContent,
+                            price: parseFloat(card.querySelector('.medicine-price, .price').textContent.replace('₹', '')),
+                            type: card.classList.contains('medicine-card') ? 'medicine' : 'healthcare',
+                            image: card.querySelector('img').src
+                        };
+                        this.addToCart(item);
+                    });
+                });
+
+                // Checkout button
+                document.querySelector('.checkout-btn').addEventListener('click', () => {
+                    if (this.cart.size === 0) {
+                        this.showNotification('Your cart is empty');
+                        return;
+                    }
+                    this.proceedToCheckout();
+                });
+            }
+
+            toggleCart() {
+                this.cartModal.classList.toggle('active');
+            }
+
+            addToCart(item) {
+                if (this.cart.has(item.id)) {
+                    const existingItem = this.cart.get(item.id);
+                    existingItem.quantity += 1;
+                } else {
+                    this.cart.set(item.id, { ...item, quantity: 1 });
+                }
+                this.updateCartUI();
+                this.showNotification(`Added ${item.name} to cart`);
+            }
+
+            updateCartUI() {
+                // Update cart count
+                const totalItems = Array.from(this.cart.values())
+                    .reduce((sum, item) => sum + item.quantity, 0);
+                this.cartCount.textContent = totalItems;
+
+                // Update cart items
+                const cartItems = document.querySelector('.cart-items');
+                cartItems.innerHTML = Array.from(this.cart.values())
+                    .map(item => this.createCartItemHTML(item))
+                    .join('');
+
+                // Update total
+                const total = Array.from(this.cart.values())
+                    .reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                document.querySelector('.cart-total .total').textContent = `Total: ₹${total.toFixed(2)}`;
+            }
+
+            createCartItemHTML(item) {
+                return `
+                    <div class="cart-item" data-id="${item.id}">
+                        <img src="${item.image}" alt="${item.name}" class="cart-item-image">
+                        <div class="cart-item-details">
+                            <h4>${item.name}</h4>
+                            <div class="cart-item-price">₹${item.price}</div>
+                            <div class="quantity-controls">
+                                <button onclick="cartManager.updateQuantity('${item.id}', -1)">-</button>
+                                <span>${item.quantity}</span>
+                                <button onclick="cartManager.updateQuantity('${item.id}', 1)">+</button>
+                            </div>
+                        </div>
+                        <button class="remove-item" onclick="cartManager.removeItem('${item.id}')">×</button>
+                    </div>
+                `;
+            }
+
+            updateQuantity(itemId, change) {
+                const item = this.cart.get(itemId);
+                if (item) {
+                    item.quantity += change;
+                    if (item.quantity <= 0) {
+                        this.cart.delete(itemId);
+                    }
+                    this.updateCartUI();
+                }
+            }
+
+            removeItem(itemId) {
+                this.cart.delete(itemId);
+                this.updateCartUI();
+                this.showNotification('Item removed from cart');
+            }
+
+            proceedToCheckout() {
+                const checkoutModal = document.createElement('div');
+                checkoutModal.className = 'modal checkout-modal';
+                checkoutModal.innerHTML = `
+                    <div class="modal-content">
+                        <h2>Checkout</h2>
+                        <form id="checkoutForm">
+                            <div class="form-group">
+                                <label>Delivery Address</label>
+                                <textarea required placeholder="Enter your full delivery address"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Phone Number</label>
+                                <input type="tel" required pattern="[0-9]{10}" placeholder="Enter your phone number">
+                            </div>
+                            <div class="payment-section">
+                                <h3>Payment Method</h3>
+                                <div class="payment-options">
+                                    <label>
+                                        <input type="radio" name="payment" value="upi" checked>
+                                        UPI Payment
+                                    </label>
+                                    <label>
+                                        <input type="radio" name="payment" value="card">
+                                        Card Payment
+                                    </label>
+                                    <label>
+                                        <input type="radio" name="payment" value="cod">
+                                        Cash on Delivery
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="order-summary">
+                                <h3>Order Summary</h3>
+                                <div class="summary-items">
+                                    ${Array.from(this.cart.values())
+                                        .map(item => `
+                                            <div class="summary-item">
+                                                <span>${item.name} × ${item.quantity}</span>
+                                                <span>₹${(item.price * item.quantity).toFixed(2)}</span>
+                                            </div>
+                                        `).join('')}
+                                </div>
+                                <div class="summary-total">
+                                    <strong>Total:</strong>
+                                    <strong>₹${Array.from(this.cart.values())
+                                        .reduce((sum, item) => sum + (item.price * item.quantity), 0)
+                                        .toFixed(2)}</strong>
+                                </div>
+                            </div>
+                            <button type="submit" class="place-order-btn">Place Order</button>
+                        </form>
+                    </div>
+                `;
+                document.body.appendChild(checkoutModal);
+
+                checkoutModal.querySelector('#checkoutForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.processOrder(checkoutModal);
+                });
+            }
+
+            processOrder(modal) {
+                const loadingSpinner = document.createElement('div');
+                loadingSpinner.className = 'loading-spinner';
+                modal.querySelector('.modal-content').appendChild(loadingSpinner);
+
+                // Simulate order processing
+                setTimeout(() => {
+                    loadingSpinner.remove();
+                    this.showOrderConfirmation();
+                    modal.remove();
+                    this.cart.clear();
+                    this.updateCartUI();
+                    this.toggleCart();
+                }, 2000);
+            }
+
+            showOrderConfirmation() {
+                const confirmationModal = document.createElement('div');
+                confirmationModal.className = 'modal confirmation-modal';
+                confirmationModal.innerHTML = `
+                    <div class="modal-content">
+                        <div class="success-icon">✓</div>
+                        <h2>Order Placed Successfully!</h2>
+                        <p>Your order has been confirmed.</p>
+                        <p>Order ID: ORD${Date.now()}</p>
+                        <button onclick="this.closest('.modal').remove()">Continue Shopping</button>
+                    </div>
+                `;
+                document.body.appendChild(confirmationModal);
+            }
+
+            showNotification(message) {
+                const notification = document.createElement('div');
+                notification.className = 'notification';
+                notification.textContent = message;
+                document.body.appendChild(notification);
+                setTimeout(() => notification.remove(), 3000);
+            }
+        }
+
+        // Initialize the cart manager
+        const cartManager = new CartManager();
     </script>
 </body>
 </html>
