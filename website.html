@@ -533,6 +533,75 @@
         @keyframes spin {
             to { transform: translate(-50%, -50%) rotate(360deg); }
         }
+
+        .tracking-modal .modal-content {
+            max-width: 600px;
+            padding: 0;
+        }
+
+        .tracking-header {
+            background: var(--primary);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 1rem 1rem 0 0;
+        }
+
+        .estimated-time {
+            margin-top: 1rem;
+            font-size: 1.2rem;
+        }
+
+        .countdown {
+            font-weight: bold;
+            margin-left: 0.5rem;
+        }
+
+        .delivery-status {
+            padding: 1.5rem;
+        }
+
+        .status-steps {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            margin-bottom: 2rem;
+        }
+
+        .status-step {
+            text-align: center;
+            position: relative;
+            flex: 1;
+            opacity: 0.5;
+        }
+
+        .status-step.active {
+            opacity: 1;
+        }
+
+        .step-icon {
+            font-size: 1.5rem;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .driver-info {
+            display: flex;
+            align-items: center;
+            padding: 1.5rem;
+            background: var(--light-bg);
+            border-radius: 0 0 1rem 1rem;
+        }
+
+        .driver-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin-right: 1rem;
+        }
+
+        .driver-details h4 {
+            margin-bottom: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -977,30 +1046,20 @@
                 loadingSpinner.className = 'loading-spinner';
                 modal.querySelector('.modal-content').appendChild(loadingSpinner);
 
-                // Simulate order processing
+                // Get delivery address from form
+                const deliveryAddress = modal.querySelector('textarea').value;
+
                 setTimeout(() => {
                     loadingSpinner.remove();
-                    this.showOrderConfirmation();
                     modal.remove();
                     this.cart.clear();
                     this.updateCartUI();
                     this.toggleCart();
-                }, 2000);
-            }
 
-            showOrderConfirmation() {
-                const confirmationModal = document.createElement('div');
-                confirmationModal.className = 'modal confirmation-modal';
-                confirmationModal.innerHTML = `
-                    <div class="modal-content">
-                        <div class="success-icon">✓</div>
-                        <h2>Order Placed Successfully!</h2>
-                        <p>Your order has been confirmed.</p>
-                        <p>Order ID: ORD${Date.now()}</p>
-                        <button onclick="this.closest('.modal').remove()">Continue Shopping</button>
-                    </div>
-                `;
-                document.body.appendChild(confirmationModal);
+                    // Initialize delivery tracking
+                    const deliveryTracker = new DeliveryTracker();
+                    deliveryTracker.showTrackingInterface(`ORD${Date.now()}`, deliveryAddress);
+                }, 2000);
             }
 
             showNotification(message) {
@@ -1014,6 +1073,212 @@
 
         // Initialize the cart manager
         const cartManager = new CartManager();
+
+        // Add this after the CartManager class
+        class DeliveryTracker {
+            constructor() {
+                this.map = null;
+                this.driverMarker = null;
+                this.customerMarker = null;
+                this.deliveryPath = null;
+                this.estimatedTime = 600; // 10 minutes in seconds
+                this.initializeGoogleMaps();
+            }
+
+            initializeGoogleMaps() {
+                // Load Google Maps script
+                const script = document.createElement('script');
+                script.src = `https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places`;
+                script.defer = true;
+                document.head.appendChild(script);
+            }
+
+            showTrackingInterface(orderId, deliveryAddress) {
+                const trackingModal = document.createElement('div');
+                trackingModal.className = 'modal tracking-modal';
+                trackingModal.innerHTML = `
+                    <div class="modal-content tracking-content">
+                        <div class="tracking-header">
+                            <h2>Track Your Delivery</h2>
+                            <p>Order ID: ${orderId}</p>
+                            <div class="estimated-time">
+                                <span>Estimated Delivery Time:</span>
+                                <span class="countdown">10:00</span>
+                            </div>
+                        </div>
+                        <div class="delivery-status">
+                            <div class="status-steps">
+                                <div class="status-step active">
+                                    <span class="step-icon">📦</span>
+                                    <span>Order Confirmed</span>
+                                </div>
+                                <div class="status-step">
+                                    <span class="step-icon">🏪</span>
+                                    <span>Preparing Order</span>
+                                </div>
+                                <div class="status-step">
+                                    <span class="step-icon">🛵</span>
+                                    <span>Out for Delivery</span>
+                                </div>
+                                <div class="status-step">
+                                    <span class="step-icon">🏠</span>
+                                    <span>Delivered</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="deliveryMap" style="height: 300px; width: 100%; margin: 1rem 0;"></div>
+                        <div class="delivery-info">
+                            <div class="driver-info">
+                                <img src="driver-avatar.png" alt="Driver" class="driver-avatar">
+                                <div class="driver-details">
+                                    <h4>Your Delivery Partner</h4>
+                                    <p class="driver-name">John Doe</p>
+                                    <p class="driver-phone">+91 98765 43210</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(trackingModal);
+
+                this.initializeMap(deliveryAddress);
+                this.startDeliverySimulation();
+                this.startCountdown();
+            }
+
+            initializeMap(deliveryAddress) {
+                // Get coordinates from address using Geocoding
+                const geocoder = new google.maps.Geocoder();
+                geocoder.geocode({ address: deliveryAddress }, (results, status) => {
+                    if (status === 'OK') {
+                        const customerLocation = results[0].geometry.location;
+                        
+                        // Initialize map
+                        this.map = new google.maps.Map(document.getElementById('deliveryMap'), {
+                            center: customerLocation,
+                            zoom: 15
+                        });
+
+                        // Add customer marker
+                        this.customerMarker = new google.maps.Marker({
+                            position: customerLocation,
+                            map: this.map,
+                            icon: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                            title: 'Delivery Location'
+                        });
+
+                        // Simulate driver location (starting point)
+                        const driverLocation = new google.maps.LatLng(
+                            customerLocation.lat() + 0.01,
+                            customerLocation.lng() + 0.01
+                        );
+
+                        // Add driver marker
+                        this.driverMarker = new google.maps.Marker({
+                            position: driverLocation,
+                            map: this.map,
+                            icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+                            title: 'Delivery Partner'
+                        });
+
+                        // Draw initial path
+                        this.updateDeliveryPath(driverLocation, customerLocation);
+                    }
+                });
+            }
+
+            updateDeliveryPath(driverPos, customerPos) {
+                if (this.deliveryPath) {
+                    this.deliveryPath.setMap(null);
+                }
+
+                const directionsService = new google.maps.DirectionsService();
+                const directionsRenderer = new google.maps.DirectionsRenderer({
+                    map: this.map,
+                    suppressMarkers: true
+                });
+
+                directionsService.route({
+                    origin: driverPos,
+                    destination: customerPos,
+                    travelMode: google.maps.TravelMode.DRIVING
+                }, (response, status) => {
+                    if (status === 'OK') {
+                        directionsRenderer.setDirections(response);
+                        this.deliveryPath = directionsRenderer;
+                    }
+                });
+            }
+
+            startDeliverySimulation() {
+                let currentStep = 0;
+                const steps = document.querySelectorAll('.status-step');
+                
+                const updateStatus = () => {
+                    if (currentStep < steps.length) {
+                        steps[currentStep].classList.add('active');
+                        currentStep++;
+                        
+                        // Simulate driver movement
+                        if (currentStep === 2) {
+                            this.simulateDriverMovement();
+                        }
+                        
+                        setTimeout(updateStatus, this.estimatedTime / 4 * 1000);
+                    }
+                };
+
+                setTimeout(updateStatus, 2000);
+            }
+
+            simulateDriverMovement() {
+                const customerPos = this.customerMarker.getPosition();
+                const driverPos = this.driverMarker.getPosition();
+                
+                const numSteps = 20;
+                let currentStep = 0;
+
+                const latStep = (customerPos.lat() - driverPos.lat()) / numSteps;
+                const lngStep = (customerPos.lng() - driverPos.lng()) / numSteps;
+
+                const moveDriver = () => {
+                    if (currentStep < numSteps) {
+                        const newPos = new google.maps.LatLng(
+                            driverPos.lat() + latStep * currentStep,
+                            driverPos.lng() + lngStep * currentStep
+                        );
+                        
+                        this.driverMarker.setPosition(newPos);
+                        this.updateDeliveryPath(newPos, customerPos);
+                        
+                        currentStep++;
+                        setTimeout(moveDriver, this.estimatedTime / numSteps * 1000);
+                    }
+                };
+
+                moveDriver();
+            }
+
+            startCountdown() {
+                const countdownElement = document.querySelector('.countdown');
+                let timeLeft = this.estimatedTime;
+
+                const updateCountdown = () => {
+                    if (timeLeft > 0) {
+                        const minutes = Math.floor(timeLeft / 60);
+                        const seconds = timeLeft % 60;
+                        countdownElement.textContent = 
+                            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                        timeLeft--;
+                        setTimeout(updateCountdown, 1000);
+                    } else {
+                        countdownElement.textContent = 'Delivered!';
+                    }
+                };
+
+                updateCountdown();
+            }
+        }
     </script>
 </body>
 </html>
