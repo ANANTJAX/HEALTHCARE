@@ -535,72 +535,52 @@
         }
 
         .tracking-modal .modal-content {
-            max-width: 600px;
-            padding: 0;
+            max-width: 800px;
+            border-radius: 20px;
+            overflow: hidden;
         }
 
         .tracking-header {
-            background: var(--primary);
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            padding: 2rem;
             color: white;
-            padding: 1.5rem;
-            border-radius: 1rem 1rem 0 0;
         }
 
-        .estimated-time {
+        .time-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            display: inline-block;
             margin-top: 1rem;
-            font-size: 1.2rem;
         }
 
-        .countdown {
-            font-weight: bold;
-            margin-left: 0.5rem;
+        .delivery-map {
+            height: 300px;
+            width: 100%;
+            border-radius: 15px;
+            margin: 1rem 0;
         }
 
-        .delivery-status {
-            padding: 1.5rem;
+        .driver-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
 
-        .status-steps {
-            display: flex;
-            justify-content: space-between;
-            position: relative;
-            margin-bottom: 2rem;
+        .progress-bar {
+            height: 4px;
+            background: var(--gray-200);
+            border-radius: 2px;
+            margin: 1rem 0;
         }
 
-        .status-step {
-            text-align: center;
-            position: relative;
-            flex: 1;
-            opacity: 0.5;
-        }
-
-        .status-step.active {
-            opacity: 1;
-        }
-
-        .step-icon {
-            font-size: 1.5rem;
-            display: block;
-            margin-bottom: 0.5rem;
-        }
-
-        .driver-info {
-            display: flex;
-            align-items: center;
-            padding: 1.5rem;
-            background: var(--light-bg);
-            border-radius: 0 0 1rem 1rem;
-        }
-
-        .driver-avatar {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            margin-right: 1rem;
-        }
-
-        .driver-details h4 {
-            margin-bottom: 0.5rem;
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 2px;
+            width: 0;
+            transition: width 0.3s ease;
         }
     </style>
 </head>
@@ -1081,7 +1061,9 @@
                 this.driverMarker = null;
                 this.customerMarker = null;
                 this.deliveryPath = null;
-                this.estimatedTime = 600; // 10 minutes in seconds
+                this.estimatedTime = 300; // Reduced to 5 minutes (300 seconds)
+                this.nearbyDrivers = [];
+                this.selectedDriver = null;
                 this.initializeGoogleMaps();
             }
 
@@ -1095,188 +1077,214 @@
 
             showTrackingInterface(orderId, deliveryAddress) {
                 const trackingModal = document.createElement('div');
-                trackingModal.className = 'modal tracking-modal';
+                trackingModal.className = 'modal tracking-modal active';
                 trackingModal.innerHTML = `
                     <div class="modal-content tracking-content">
                         <div class="tracking-header">
-                            <h2>Track Your Delivery</h2>
-                            <p>Order ID: ${orderId}</p>
-                            <div class="estimated-time">
-                                <span>Estimated Delivery Time:</span>
-                                <span class="countdown">10:00</span>
+                            <h2>Express Delivery</h2>
+                            <p class="order-id">Order ID: ${orderId}</p>
+                            <div class="time-badge">
+                                <span class="countdown">05:00</span>
+                                <span class="time-label">mins remaining</span>
                             </div>
                         </div>
-                        <div class="delivery-status">
-                            <div class="status-steps">
-                                <div class="status-step active">
-                                    <span class="step-icon">📦</span>
-                                    <span>Order Confirmed</span>
-                                </div>
-                                <div class="status-step">
-                                    <span class="step-icon">🏪</span>
-                                    <span>Preparing Order</span>
-                                </div>
-                                <div class="status-step">
-                                    <span class="step-icon">🛵</span>
-                                    <span>Out for Delivery</span>
-                                </div>
-                                <div class="status-step">
-                                    <span class="step-icon">🏠</span>
-                                    <span>Delivered</span>
+
+                        <div class="live-tracking">
+                            <div class="status-container">
+                                <div class="status-steps">
+                                    <div class="status-step active">
+                                        <div class="step-icon">🏪</div>
+                                        <div class="step-info">
+                                            <span class="step-title">Order Confirmed</span>
+                                            <span class="step-time">Just now</span>
+                                        </div>
+                                    </div>
+                                    <div class="status-step">
+                                        <div class="step-icon">🛵</div>
+                                        <div class="step-info">
+                                            <span class="step-title">Rider Assigned</span>
+                                            <span class="step-time waiting">Finding nearest rider...</span>
+                                        </div>
+                                    </div>
+                                    <div class="status-step">
+                                        <div class="step-icon">📦</div>
+                                        <div class="step-info">
+                                            <span class="step-title">Order Picked</span>
+                                            <span class="step-time">-</span>
+                                        </div>
+                                    </div>
+                                    <div class="status-step">
+                                        <div class="step-icon">🏠</div>
+                                        <div class="step-info">
+                                            <span class="step-title">On the Way</span>
+                                            <span class="step-time">-</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div id="deliveryMap" style="height: 300px; width: 100%; margin: 1rem 0;"></div>
-                        <div class="delivery-info">
-                            <div class="driver-info">
-                                <img src="driver-avatar.png" alt="Driver" class="driver-avatar">
-                                <div class="driver-details">
-                                    <h4>Your Delivery Partner</h4>
-                                    <p class="driver-name">John Doe</p>
-                                    <p class="driver-phone">+91 98765 43210</p>
+
+                            <div id="deliveryMap" class="delivery-map"></div>
+
+                            <div class="driver-card" style="display: none">
+                                <div class="driver-header">
+                                    <img src="images/driver-avatar.png" alt="Driver" class="driver-avatar">
+                                    <div class="driver-info">
+                                        <h4 class="driver-name">Connecting to nearest rider...</h4>
+                                        <div class="driver-rating">
+                                            <span class="stars">⭐ 4.8</span>
+                                            <span class="trips">1000+ deliveries</span>
+                                        </div>
+                                    </div>
+                                    <button class="call-driver">📞</button>
+                                </div>
+                                <div class="delivery-progress">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill"></div>
+                                    </div>
+                                    <div class="eta">Arriving in <span class="eta-time">4 mins</span></div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 `;
+
                 document.body.appendChild(trackingModal);
-
                 this.initializeMap(deliveryAddress);
-                this.startDeliverySimulation();
-                this.startCountdown();
             }
 
-            initializeMap(deliveryAddress) {
-                // Get coordinates from address using Geocoding
-                const geocoder = new google.maps.Geocoder();
-                geocoder.geocode({ address: deliveryAddress }, (results, status) => {
-                    if (status === 'OK') {
-                        const customerLocation = results[0].geometry.location;
-                        
-                        // Initialize map
-                        this.map = new google.maps.Map(document.getElementById('deliveryMap'), {
-                            center: customerLocation,
-                            zoom: 15
-                        });
+            async initializeMap(deliveryAddress) {
+                try {
+                    const coordinates = await this.getCoordinates(deliveryAddress);
+                    this.map = new google.maps.Map(document.getElementById('deliveryMap'), {
+                        center: coordinates,
+                        zoom: 15,
+                        styles: this.getMapStyles(), // Custom map styling
+                        disableDefaultUI: true,
+                        zoomControl: true
+                    });
 
-                        // Add customer marker
-                        this.customerMarker = new google.maps.Marker({
-                            position: customerLocation,
-                            map: this.map,
-                            icon: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png',
-                            title: 'Delivery Location'
-                        });
+                    // Add customer marker with custom icon
+                    this.customerMarker = new google.maps.Marker({
+                        position: coordinates,
+                        map: this.map,
+                        icon: {
+                            url: 'images/home-marker.png',
+                            scaledSize: new google.maps.Size(40, 40)
+                        }
+                    });
 
-                        // Simulate driver location (starting point)
-                        const driverLocation = new google.maps.LatLng(
-                            customerLocation.lat() + 0.01,
-                            customerLocation.lng() + 0.01
-                        );
-
-                        // Add driver marker
-                        this.driverMarker = new google.maps.Marker({
-                            position: driverLocation,
-                            map: this.map,
-                            icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
-                            title: 'Delivery Partner'
-                        });
-
-                        // Draw initial path
-                        this.updateDeliveryPath(driverLocation, customerLocation);
-                    }
-                });
-            }
-
-            updateDeliveryPath(driverPos, customerPos) {
-                if (this.deliveryPath) {
-                    this.deliveryPath.setMap(null);
+                    // Simulate nearby drivers
+                    this.generateNearbyDrivers(coordinates);
+                    this.assignNearestDriver();
+                } catch (error) {
+                    console.error('Map initialization failed:', error);
                 }
-
-                const directionsService = new google.maps.DirectionsService();
-                const directionsRenderer = new google.maps.DirectionsRenderer({
-                    map: this.map,
-                    suppressMarkers: true
-                });
-
-                directionsService.route({
-                    origin: driverPos,
-                    destination: customerPos,
-                    travelMode: google.maps.TravelMode.DRIVING
-                }, (response, status) => {
-                    if (status === 'OK') {
-                        directionsRenderer.setDirections(response);
-                        this.deliveryPath = directionsRenderer;
-                    }
-                });
             }
 
-            startDeliverySimulation() {
-                let currentStep = 0;
+            generateNearbyDrivers(customerLocation) {
+                // Generate 5 random nearby drivers
+                for (let i = 0; i < 5; i++) {
+                    const driver = {
+                        id: `driver-${i}`,
+                        name: `Rider ${i + 1}`,
+                        rating: (4 + Math.random()).toFixed(1),
+                        trips: Math.floor(Math.random() * 1000) + 500,
+                        location: new google.maps.LatLng(
+                            customerLocation.lat + (Math.random() - 0.5) * 0.01,
+                            customerLocation.lng + (Math.random() - 0.5) * 0.01
+                        ),
+                        marker: new google.maps.Marker({
+                            position: null,
+                            map: this.map,
+                            icon: {
+                                url: 'images/delivery-bike.png',
+                                scaledSize: new google.maps.Size(30, 30)
+                            }
+                        })
+                    };
+                    this.nearbyDrivers.push(driver);
+                    driver.marker.setPosition(driver.location);
+                }
+            }
+
+            assignNearestDriver() {
+                // Find nearest driver
+                const customerPos = this.customerMarker.getPosition();
+                let nearestDriver = this.nearbyDrivers[0];
+                let shortestDistance = google.maps.geometry.spherical.computeDistanceBetween(
+                    customerPos,
+                    nearestDriver.location
+                );
+
+                this.nearbyDrivers.forEach(driver => {
+                    const distance = google.maps.geometry.spherical.computeDistanceBetween(
+                        customerPos,
+                        driver.location
+                    );
+                    if (distance < shortestDistance) {
+                        shortestDistance = distance;
+                        nearestDriver = driver;
+                    }
+                });
+
+                this.selectedDriver = nearestDriver;
+                this.updateDriverCard(nearestDriver);
+                this.startDeliveryAnimation();
+            }
+
+            updateDriverCard(driver) {
+                const driverCard = document.querySelector('.driver-card');
+                driverCard.style.display = 'block';
+                driverCard.querySelector('.driver-name').textContent = driver.name;
+                driverCard.querySelector('.stars').textContent = `⭐ ${driver.rating}`;
+                driverCard.querySelector('.trips').textContent = `${driver.trips}+ deliveries`;
+            }
+
+            startDeliveryAnimation() {
+                // Hide other drivers
+                this.nearbyDrivers.forEach(driver => {
+                    if (driver.id !== this.selectedDriver.id) {
+                        driver.marker.setMap(null);
+                    }
+                });
+
+                // Start movement animation
+                this.animateDelivery();
+            }
+
+            animateDelivery() {
                 const steps = document.querySelectorAll('.status-step');
-                
+                let currentStep = 1;
+                const stepDuration = this.estimatedTime / 4;
+
                 const updateStatus = () => {
                     if (currentStep < steps.length) {
                         steps[currentStep].classList.add('active');
+                        steps[currentStep].querySelector('.step-time').textContent = 
+                            new Date().toLocaleTimeString('en-US', { hour12: true, hour: 'numeric', minute: '2-digit' });
                         currentStep++;
                         
-                        // Simulate driver movement
-                        if (currentStep === 2) {
-                            this.simulateDriverMovement();
-                        }
-                        
-                        setTimeout(updateStatus, this.estimatedTime / 4 * 1000);
+                        // Update progress bar
+                        const progress = (currentStep / steps.length) * 100;
+                        document.querySelector('.progress-fill').style.width = `${progress}%`;
+
+                        setTimeout(updateStatus, stepDuration * 1000);
                     }
                 };
 
-                setTimeout(updateStatus, 2000);
+                setTimeout(updateStatus, 1000);
             }
 
-            simulateDriverMovement() {
-                const customerPos = this.customerMarker.getPosition();
-                const driverPos = this.driverMarker.getPosition();
-                
-                const numSteps = 20;
-                let currentStep = 0;
-
-                const latStep = (customerPos.lat() - driverPos.lat()) / numSteps;
-                const lngStep = (customerPos.lng() - driverPos.lng()) / numSteps;
-
-                const moveDriver = () => {
-                    if (currentStep < numSteps) {
-                        const newPos = new google.maps.LatLng(
-                            driverPos.lat() + latStep * currentStep,
-                            driverPos.lng() + lngStep * currentStep
-                        );
-                        
-                        this.driverMarker.setPosition(newPos);
-                        this.updateDeliveryPath(newPos, customerPos);
-                        
-                        currentStep++;
-                        setTimeout(moveDriver, this.estimatedTime / numSteps * 1000);
-                    }
-                };
-
-                moveDriver();
-            }
-
-            startCountdown() {
-                const countdownElement = document.querySelector('.countdown');
-                let timeLeft = this.estimatedTime;
-
-                const updateCountdown = () => {
-                    if (timeLeft > 0) {
-                        const minutes = Math.floor(timeLeft / 60);
-                        const seconds = timeLeft % 60;
-                        countdownElement.textContent = 
-                            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                        timeLeft--;
-                        setTimeout(updateCountdown, 1000);
-                    } else {
-                        countdownElement.textContent = 'Delivered!';
-                    }
-                };
-
-                updateCountdown();
+            getMapStyles() {
+                // Custom map styles to match Blinkit/Zomato theme
+                return [
+                    {
+                        "featureType": "all",
+                        "elementType": "labels.text.fill",
+                        "stylers": [{"color": "#7c93a3"},{"lightness": "-10"}]
+                    },
+                    // ... more style configurations ...
+                ];
             }
         }
     </script>
